@@ -42,10 +42,10 @@ Ini adalah daftar progres yang akan saya kerjakan berdasarkan kurikulum dari `ma
 - [ ] Gunakan `.map()` untuk merender beberapa komponen `SkillCard` di halaman tersebut.
 
 ### Verifikasi AI:
-- [ ] Buat komponen baru `SkillCard.tsx` yang menerima `prop` `skillName` (string) dan `level` ('Beginner', 'Intermediate', 'Advanced').
-- [ ] Buat halaman baru di `src/app/(main)/skills/page.tsx`.
-- [ ] Di halaman Skills, buat array data *mock* untuk beberapa keahlian Anda.
-- [ ] Gunakan `.map()` untuk merender beberapa komponen `SkillCard` di halaman tersebut.
+- [x] Buat komponen baru `SkillCard.tsx` yang menerima `prop` `skillName` (string) dan `level` ('Beginner', 'Intermediate', 'Advanced').
+- [x] Buat halaman baru di `src/app/(main)/skills/page.tsx`.
+- [x] Di halaman Skills, buat array data *mock* untuk beberapa keahlian Anda.
+- [x] Gunakan `.map()` untuk merender beberapa komponen `SkillCard` di halaman tersebut.
 
 ---
 
