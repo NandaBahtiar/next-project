@@ -1,13 +1,14 @@
 "use client";
-
-import React from 'react';
+import { env } from 'node:process';
+import React, {useEffect, useState} from 'react';
 // Import kedua komponen generik untuk perbandingan
 import ApiDrivenList from '@/app/components/ApiDrivenList'; // Pendekatan 2
 import List from '@/app/components/List'; // Pendekatan 1
 
 import Card from '@/app/components/Card';
-import SkillCard from "@/app/components/SkillCard";
+import SkillCard, {CardSkill} from "@/app/components/SkillCard";
 import { projek } from "@/app/api/projects/route";
+
 
 const skillData = [
     { id: 1, skillName: 'Next.js', level: 'Advanced' as const },
@@ -17,6 +18,26 @@ const skillData = [
 ];
 
 const Page = () => {
+    const [skill,setSkill] = useState <CardSkill[]>([])
+    useEffect(
+        () => { // Menggunakan async IIFE (Immediately Invoked Function Expression)
+            (async () => {
+                try {
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/skills`, { // Menggunakan path relatif
+                        cache: 'no-store', // Selalu ambil data terbaru
+                    });
+                    if (!res.ok) {
+                        throw new Error('Gagal mengambil data skill');
+                    }
+                    const data: CardSkill[] = await res.json();
+                    setSkill(data);
+                } catch (e) {
+                    console.error("Error fetching skills:", e); // Menggunakan console.error untuk kesalahan
+                }
+            })();
+        },
+        []
+    )
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
             {/* Hero Section */}
@@ -59,7 +80,7 @@ const Page = () => {
                 </div>
 
                 <List
-                    items={skillData}
+                    items={skill}
                     renderItem={(skill) => <SkillCard {...skill} />}
                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
                 />

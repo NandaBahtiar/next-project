@@ -1,6 +1,7 @@
 import React from 'react'
 
 export interface CardSkill {
+    id: number;
     skillName: string;
     level: 'Beginner' | 'Intermediate' | 'Advanced';
 }

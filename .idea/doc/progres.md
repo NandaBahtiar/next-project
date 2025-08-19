@@ -57,10 +57,10 @@ Ini adalah daftar progres yang akan saya kerjakan berdasarkan kurikulum dari `ma
 - [ ] Gantilah data *mock* lokal dengan data yang diambil dari API `/api/skills` menggunakan `fetch`.
 
 ### Verifikasi AI:
-- [ ] Buat API route baru di `src/app/api/skills/route.ts`.
-- [ ] API ini harus mengembalikan data *mock* untuk keahlian Anda (mirip dengan tugas Bab 3).
-- [ ] Ubah halaman `skills/page.tsx` menjadi *async component*.
-- [ ] Gantilah data *mock* lokal dengan data yang diambil dari API `/api/skills` menggunakan `fetch`.
+- [x] Buat API route baru di `src/app/api/skills/route.ts`.
+- [x] API ini harus mengembalikan data *mock* untuk keahlian Anda (mirip dengan tugas Bab 3).
+- [x] Ubah halaman `skills/page.tsx` menjadi *async component*.
+- [x] Gantilah data *mock* lokal dengan data yang diambil dari API `/api/skills` menggunakan `fetch`.
 
 ---
 
@@ -72,10 +72,10 @@ Ini adalah daftar progres yang akan saya kerjakan berdasarkan kurikulum dari `ma
 - [ ] Tampilkan pesan error di bawah setiap input jika ada error yang sesuai (misalnya, `errors.name && <p className="text-red-500">{errors.name}</p>`).
 
 ### Verifikasi AI:
-- [ ] Tambahkan state baru untuk validasi error: `const [errors, setErrors] = useState<Partial<FormData>>({})`. `Partial<FormData>` berarti objek error bisa memiliki beberapa atau semua properti dari `FormData`.
-- [ ] Di dalam `handleSubmit`, sebelum `alert`, tambahkan logika validasi: jika `formData.name` kosong, set error untuk nama. Lakukan hal yang sama untuk email dan pesan.
-- [ ] Jika ada error, jangan jalankan `alert` dan `setFormData`.
-- [ ] Tampilkan pesan error di bawah setiap input jika ada error yang sesuai (misalnya, `errors.name && <p className="text-red-500">{errors.name}</p>`).
+- [x] Tambahkan state baru untuk validasi error: `const [errors, setErrors] = useState<Partial<FormData>>({})`. `Partial<FormData>` berarti objek error bisa memiliki beberapa atau semua properti dari `FormData`.
+- [x] Di dalam `handleSubmit`, sebelum `alert`, tambahkan logika validasi: jika `formData.name` kosong, set error untuk nama. Lakukan hal yang sama untuk email dan pesan.
+- [x] Jika ada error, jangan jalankan `alert` dan `setFormData`.
+- [x] Tampilkan pesan error di bawah setiap input jika ada error yang sesuai (misalnya, `errors.name && <p className="text-red-500">{errors.name}</p>`).
 
 ---
 
