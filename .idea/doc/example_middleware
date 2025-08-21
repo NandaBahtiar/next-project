@@ -1,0 +1,30 @@
+// src/middleware.ts
+import { getToken } from 'next-auth/jwt';
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function middleware(req: NextRequest) {
+    const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+
+    // Daftar path yang ingin dilindungi
+    const protectedPaths = ['/about'];
+
+    // Cek jika path saat ini adalah salah satu dari path yang dilindungi
+    const isProtected = protectedPaths.some(path => req.nextUrl.pathname.startsWith(path));
+
+    // Jika tidak ada token dan path dilindungi, alihkan ke halaman utama
+    if (!token && isProtected) {
+        return NextResponse.redirect(new URL('/', req.url));
+    }
+
+    // Lanjutkan jika sudah login atau path tidak dilindungi
+    return NextResponse.next();
+}
+
+// Konfigurasi matcher untuk menentukan path mana yang akan dilewati middleware
+export const config = {
+    matcher: [
+        '/about/:path*',
+
+        '/api/auth/:path*'
+    ],
+};

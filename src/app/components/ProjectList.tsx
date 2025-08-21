@@ -2,7 +2,7 @@
 import Card from '@/app/components/Card';
 // Pastikan tipe 'projek' diekspor dari file route Anda
 import { projek } from "@/app/api/projects/route";
-import {CardSkill} from "@/app/components/SkillCard";
+
 
 // Fungsi untuk mengambil data proyek
 async function getProjects(): Promise<projek[]> {

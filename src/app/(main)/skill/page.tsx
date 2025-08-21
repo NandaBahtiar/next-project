@@ -1,4 +1,4 @@
-import Card from '@/app/components/Card';
+
  import SkillCard, {CardSkill} from "@/app/components/SkillCard";
 import List from "@/app/components/List"; // Asumsikan tipe Project punya id
 

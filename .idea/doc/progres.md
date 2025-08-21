@@ -94,33 +94,47 @@ Ini adalah daftar progres yang akan saya kerjakan berdasarkan kurikulum dari `ma
 
 ---
 
-## Bab 7: Autentikasi & Keamanan dengan Auth.js v5
+## Bab 7: Autentikasi & Keamanan dengan Next-Auth v4 (Versi Stabil)
 
-- [ ] Buat komponen `AuthButton.tsx` yang menampilkan tombol "Sign In" jika pengguna belum login, dan tombol "Sign Out" jika sudah login.
-- [ ] Gunakan fungsi `signIn` dan `signOut` yang diekspor dari `auth.ts` untuk menangani klik tombol.
-- [ ] Untuk mendapatkan sesi di komponen klien, gunakan hook `useSession` dari `next-auth/react`. (Anda perlu membungkus layout dengan `<SessionProvider>`).
-- [ ] Letakkan `AuthButton` di `Navbar.tsx`.
+- [x] Downgrade `next-auth` ke v4 yang stabil.
+- [x] Buat file konfigurasi terpusat di `src/lib/auth.ts`.
+- [x] Buat API handler untuk Next-Auth di `src/app/api/auth/[...nextauth]/route.ts`.
+- [x] Buat middleware manual di `src/middleware.ts` untuk melindungi rute.
+- [x] Buat komponen `Providers.tsx` untuk `SessionProvider`.
+- [x] Perbarui `layout.tsx` untuk menggunakan `Providers`.
+- [x] Buat komponen `AuthButton.tsx` untuk login/logout.
+- [x] Tambahkan `AuthButton` ke dalam `Navbar`.
 
 ### Verifikasi AI:
-- [ ] Buat komponen `AuthButton.tsx` yang menampilkan tombol "Sign In" jika pengguna belum login, dan tombol "Sign Out" jika sudah login.
-- [ ] Gunakan fungsi `signIn` dan `signOut` yang diekspor dari `auth.ts` untuk menangani klik tombol.
-- [ ] Untuk mendapatkan sesi di komponen klien, gunakan hook `useSession` dari `next-auth/react`. (Anda perlu membungkus layout dengan `<SessionProvider>`).
-- [ ] Letakkan `AuthButton` di `Navbar.tsx`.
+- [x] Downgrade `next-auth` ke v4 yang stabil.
+- [x] Buat file konfigurasi terpusat di `src/lib/auth.ts`.
+- [x] Buat API handler untuk Next-Auth di `src/app/api/auth/[...nextauth]/route.ts`.
+- [x] Buat middleware manual di `src/middleware.ts` untuk melindungi rute.
+- [x] Buat komponen `Providers.tsx` untuk `SessionProvider`.
+- [x] Perbarui `layout.tsx` untuk menggunakan `Providers`.
+- [x] Buat komponen `AuthButton.tsx` untuk login/logout.
+- [x] Tambahkan `AuthButton` ke dalam `Navbar`.
 
 ---
 
-## Bab 8: Integrasi Database dengan Prisma + Supabase
+## Bab 8: Menyimpan Form Kontak ke Database dengan Prisma & Server Actions
 
-- [ ] Buat halaman admin sederhana di `/dashboard/posts/create` yang hanya bisa diakses oleh pengguna yang sudah login.
-- [ ] Halaman ini harus berisi formulir untuk membuat post blog baru (judul dan konten).
-- [ ] Buat **Server Action** untuk menangani submit form tersebut.
-- [ ] Server Action harus menggunakan `prisma.post.create()` untuk menyimpan post baru ke database Supabase Anda.
+- [x] Atur database Supabase dan tambahkan `DATABASE_URL` ke `.env.local`.
+- [x] Install dan setup Prisma.
+- [x] Definisikan model `ContactSubmission` di `schema.prisma`.
+- [x] Jalankan `prisma migrate` dan `prisma generate` untuk sinkronisasi database.
+- [x] Buat Server Action untuk menyimpan data kontak.
+- [x] Refaktor halaman kontak untuk menggunakan Server Action.
+- [x] Install `zod` dan tambahkan validasi di sisi server.
 
 ### Verifikasi AI:
-- [ ] Buat halaman admin sederhana di `/dashboard/posts/create` yang hanya bisa diakses oleh pengguna yang sudah login.
-- [ ] Halaman ini harus berisi formulir untuk membuat post blog baru (judul dan konten).
-- [ ] Buat **Server Action** untuk menangani submit form tersebut.
-- [ ] Server Action harus menggunakan `prisma.post.create()` untuk menyimpan post baru ke database Supabase Anda.
+- [x] Atur database Supabase dan tambahkan `DATABASE_URL` ke `.env.local`.
+- [x] Install dan setup Prisma.
+- [x] Definisikan model `ContactSubmission` di `schema.prisma`.
+- [x] Jalankan `prisma migrate` dan `prisma generate` untuk sinkronisasi database.
+- [x] Buat Server Action untuk menyimpan data kontak.
+- [x] Refaktor halaman kontak untuk menggunakan Server Action.
+- [x] Install `zod` dan tambahkan validasi di sisi server.
 
 ---
 

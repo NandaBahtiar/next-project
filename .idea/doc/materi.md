@@ -432,191 +432,1058 @@ export default List;
 
 ---
 
-## Bab 7: Autentikasi & Keamanan dengan Auth.js v5
+## Bab 7: Autentikasi & Keamanan dengan Next-Auth v4 (Versi Stabil)
 
-* **Tujuan:** Menambahkan fungsionalitas login/logout menggunakan Auth.js (NextAuth v5) dan melindungi rute.
-* **Proyek:** Membuat halaman "Dashboard" yang hanya bisa diakses setelah login.
+* **Tujuan:** Mengamankan aplikasi dengan fungsionalitas login/logout menggunakan **Next-Auth v4**, versi yang terbukti stabil dan andal, serta melindunginya menggunakan **Middleware**.
+* **Proyek:** Membuat halaman "Dashboard" yang hanya bisa diakses oleh pengguna yang sudah login.
 
-### Contoh Kode & Penjelasan:
+### Konsep Utama
 
-1.  **Install:** `npm install next-auth@beta`
-
-2.  **`auth.ts` (di root proyek)**
-    ```typescript
-    import NextAuth from "next-auth"
-    import GitHub from "next-auth/providers/github"
-
-    export const { handlers, signIn, signOut, auth } = NextAuth({
-      providers: [
-        GitHub({
-          clientId: process.env.AUTH_GITHUB_ID,
-          clientSecret: process.env.AUTH_GITHUB_SECRET,
-        }),
-      ],
-    })
-    ```
-    **Fungsi Kode:**
-    * File ini adalah pusat konfigurasi Auth.js.
-    * `NextAuth({ ... })`: Menginisialisasi Auth.js dengan provider (misalnya, GitHub).
-    * `export const { ... }`: Mengekspor fungsi-fungsi penting: `handlers` (untuk API routes), `signIn`, `signOut` (untuk digunakan di komponen), dan `auth` (untuk mengambil sesi di server).
-    * *Catatan: Tambahkan `AUTH_SECRET`, `AUTH_GITHUB_ID`, dan `AUTH_GITHUB_SECRET` ke file `.env.local`.*
-
-3.  **`src/app/api/auth/[...nextauth]/route.ts`**
-    ```typescript
-    import { handlers } from "@/auth" // Referensi ke auth.ts
-    export const { GET, POST } = handlers
-    ```
-    **Fungsi Kode:**
-    * File ini hanya mengekspor `handlers` dari `auth.ts` untuk membuat API endpoint yang diperlukan Auth.js.
-
-4.  **`middleware.ts` (di root proyek)**
-    ```typescript
-    import { auth } from "@/auth"
-
-    export default auth((req) => {
-      // Logika middleware di sini jika perlu
-      // Jika tidak ada logika khusus, middleware akan otomatis melindungi rute
-    })
-
-    // Melindungi semua rute kecuali yang ditentukan
-    export const config = {
-      matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
-    }
-    ```
-    **Fungsi Kode:**
-    * Middleware Auth.js secara default akan melindungi semua halaman dan mengalihkan pengguna yang belum login ke halaman sign-in.
-    * `matcher`: Mengonfigurasi rute mana yang akan dijalankan oleh middleware. Pola ini mengecualikan file statis dan API.
-
-### Tugas:
-1.  Buat komponen `AuthButton.tsx` yang menampilkan tombol "Sign In" jika pengguna belum login, dan tombol "Sign Out" jika sudah login.
-2.  Gunakan fungsi `signIn` dan `signOut` yang diekspor dari `auth.ts` untuk menangani klik tombol.
-3.  Untuk mendapatkan sesi di komponen klien, gunakan hook `useSession` dari `next-auth/react`. (Anda perlu membungkus layout dengan `<SessionProvider>`).
-4.  Letakkan `AuthButton` di `Navbar.tsx`.
+*   **Next-Auth v4:** Versi library yang sudah matang untuk menangani autentikasi. Kita akan menggunakan pola yang paling umum dan stabil dari versi ini.
+*   **Middleware:** Kode yang berjalan di server sebelum sebuah permintaan selesai diproses. Kita akan membuat middleware secara manual untuk memeriksa status login pengguna.
+*   **`getToken`:** Fungsi dari `next-auth/jwt` untuk membaca dan memverifikasi token sesi pengguna di dalam middleware.
 
 ---
 
-## Bab 8: Integrasi Database dengan Prisma + Supabase
+### Struktur Folder & File Baru
 
-* **Tujuan:** Mengganti data dari API statis menjadi data dari database PostgreSQL Supabase.
-* **Proyek:** Mengubah "Proyek" menjadi "Post Blog" yang disimpan di database.
-
-### Contoh Kode & Penjelasan:
-
-1.  **`prisma/schema.prisma`**
-    ```prisma
-    generator client {
-      provider = "prisma-client-js"
-    }
-
-    datasource db {
-      provider = "postgresql"
-      url      = env("DATABASE_URL")
-    }
-
-    model Post {
-      id          Int      @id @default(autoincrement())
-      title       String
-      content     String?
-      published   Boolean  @default(false)
-      createdAt   DateTime @default(now())
-      updatedAt   DateTime @updatedAt
-    }
-    ```
-    **Fungsi Kode:**
-    * `model Post`: Mendefinisikan tabel `Post` di database.
-    * `id Int @id ...`: Mendefinisikan kolom `id` sebagai **Primary Key** yang bertambah otomatis.
-    * *Catatan: Dapatkan `DATABASE_URL` dari **Project Settings > Database > Connection string** di Supabase. Jalankan `npx prisma migrate dev` untuk sinkronisasi.*
-
-2.  **Halaman Blog: `src/app/(main)/blog/page.tsx`**
-    ```typescript
-    import prisma from '@/lib/prisma'; // Asumsikan prisma client diinisialisasi di lib/prisma.ts
-
-    const BlogPage = async () => {
-      const posts = await prisma.post.findMany({
-        where: { published: true },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      return (
-        <section className="p-8 md:p-16">
-          <h1 className="text-3xl font-bold mb-8">Blog Saya</h1>
-          <div className="space-y-8">
-            {posts.map((post) => (
-              <article key={post.id}>
-                <h2 className="text-2xl font-semibold">{post.title}</h2>
-                <p className="text-gray-700 mt-2">{post.content}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-      );
-    };
-
-    export default BlogPage;
-    ```
-    **Fungsi Kode:**
-    * `await prisma.post.findMany(...)`: Mengambil data dari database menggunakan Prisma Client.
-    * `where: { published: true }`: Opsi untuk memfilter hasil, hanya mengambil post yang sudah dipublikasikan.
-    * `orderBy: { createdAt: 'desc' }`: Mengurutkan hasil dari yang terbaru.
-
-### Tugas:
-1.  Buat halaman admin sederhana di `/dashboard/posts/create` yang hanya bisa diakses oleh pengguna yang sudah login.
-2.  Halaman ini harus berisi formulir untuk membuat post blog baru (judul dan konten).
-3.  Buat **Server Action** untuk menangani submit form tersebut.
-4.  Server Action harus menggunakan `prisma.post.create()` untuk menyimpan post baru ke database Supabase Anda.
+```text
+next-project/
+├── .env.local          <-- (Sama seperti sebelumnya)
+└── src/
+    ├── middleware.ts       <-- BARU: Logika proteksi rute manual
+    ├── lib/
+    │   └── auth.ts         <-- BARU: Konfigurasi terpusat untuk authOptions
+    └── app/
+        ├── api/
+        │   └── auth/
+        │       └── [...nextauth]/
+        │           └── route.ts  <-- BARU: API handler untuk Next-Auth
+        ├── components/
+        │   ├── Providers.tsx   <-- BARU: Wrapper untuk SessionProvider
+        │   ├── AuthButton.tsx  <-- BARU: Komponen tombol login/logout
+        │   └── Navbar.tsx      <-- DIMODIFIKASI
+        ├── dashboard/
+        │   └── page.tsx        <-- BARU: Halaman yang dilindungi
+        ├── layout.tsx          <-- DIMODIFIKASI
+        └── ... (file lainnya)
+```
 
 ---
 
-## Bab 9: Performa & Optimisasi
+### Langkah-langkah Implementasi
 
-* **Tujuan:** Menerapkan praktik terbaik untuk membuat aplikasi lebih cepat dan efisien.
-* **Proyek:** Mengoptimalkan gambar dan *font* di aplikasi blog.
+#### Langkah 1: Instalasi & Downgrade
 
-### Contoh Kode & Penjelasan:
+Kita akan menghapus versi beta dan menginstal versi stabil terbaru dari `next-auth`.
 
-1.  **Menggunakan `next/image` (Sintaks Terbaru)**
-    ```typescript
-    import Image from 'next/image';
+```bash
+npm uninstall next-auth
+npm install next-auth
+```
 
-    // Di dalam komponen Card atau sejenisnya
-    <div className="relative h-48 w-full">
-      <Image
-        src="/path/to/image.jpg"
-        alt="Deskripsi Gambar"
-        fill // Mengisi parent container
-        className="object-cover" // Mirip object-fit: cover
-      />
-    </div>
-    ```
-    **Fungsi Kode:**
-    * `<Image>`: Komponen ini secara otomatis melakukan **resizing**, menyajikan **format modern** (WebP), dan menerapkan **lazy loading**.
-    * `fill`: Prop ini membuat gambar mengisi elemen induknya. Induk harus memiliki `position: relative`.
-    * `className="object-cover"`: Menggunakan kelas Tailwind untuk mengontrol bagaimana gambar ditampilkan, menggantikan prop `objectFit` yang sudah usang.
+#### Langkah 2: Konfigurasi Environment Variables
 
-2.  **Menggunakan `next/font`**
-    ```typescript
-    import { Poppins } from 'next/font/google';
+Langkah ini sama persis seperti sebelumnya. Pastikan file `.env.local` Anda di root proyek berisi variabel-variabel berikut:
 
-    const poppins = Poppins({
-      weight: ['400', '700'],
-      subsets: ['latin'],
-      display: 'swap', // Wajib ada
-    });
+```
+AUTH_SECRET="GantiDenganKunciRahasiaAnda"
+AUTH_GITHUB_ID="GantiDenganGitHubClientIdAnda"
+AUTH_GITHUB_SECRET="GantiDenganGitHubClientSecretAnda"
+```
 
-    // di layout.tsx
-    <html lang="en" className={poppins.className}>
-      <body>{children}</body>
+#### Langkah 3: File Konfigurasi Terpusat (`lib/auth.ts`)
+
+Pada v4, praktik terbaiknya adalah membuat satu file untuk menampung semua konfigurasi `NextAuth`. Buat folder `lib` di dalam `src`, lalu buat file `auth.ts`.
+
+**File: `src/lib/auth.ts`**
+```typescript
+import { NextAuthOptions } from "next-auth";
+import GitHubProvider from "next-auth/providers/github";
+
+export const authOptions: NextAuthOptions = {
+  // Konfigurasi provider, misalnya GitHub
+  providers: [
+    GitHubProvider({
+      clientId: process.env.AUTH_GITHUB_ID as string,
+      clientSecret: process.env.AUTH_GITHUB_SECRET as string,
+    }),
+  ],
+  // Secret ini digunakan untuk mengenkripsi JWT
+  secret: process.env.AUTH_SECRET,
+  // Opsi session, kita menggunakan JWT
+  session: {
+    strategy: "jwt",
+  },
+};
+```
+
+#### Langkah 4: API Route untuk Next-Auth
+
+Sekarang, buat API handler yang akan menggunakan `authOptions` di atas.
+
+**File: `src/app/api/auth/[...nextauth]/route.ts`**
+```typescript
+import NextAuth from "next-auth";
+import { authOptions } from "@/lib/auth"; // Impor dari file konfigurasi
+
+const handler = NextAuth(authOptions);
+
+export { handler as GET, handler as POST };
+```
+
+#### Langkah 5: Middleware Manual (`src/middleware.ts`)
+
+Ini adalah bagian yang paling berbeda. Kita akan membuat middleware secara manual, seperti contoh yang Anda berikan.
+
+**File: `src/middleware.ts`**
+```typescript
+import { getToken } from 'next-auth/jwt';
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function middleware(req: NextRequest) {
+    const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+
+    // Tentukan halaman mana saja yang ingin Anda lindungi
+    const protectedPaths = ['/dashboard'];
+
+    // Cek jika path saat ini adalah salah satu dari path yang dilindungi
+    const isProtectedRoute = protectedPaths.some(path => req.nextUrl.pathname.startsWith(path));
+
+    // Jika tidak ada token (belum login) DAN path dilindungi, alihkan ke halaman utama
+    if (!token && isProtectedRoute) {
+        const url = req.nextUrl.clone();
+        url.pathname = '/'; // Alihkan ke halaman utama
+        return NextResponse.redirect(url);
+    }
+
+    // Jika sudah login atau path tidak dilindungi, lanjutkan seperti biasa.
+    return NextResponse.next();
+}
+
+// Konfigurasi matcher untuk menentukan path mana saja yang akan dilewati middleware
+export const config = {
+    matcher: [
+        '/dashboard/:path*', // Lindungi semua sub-path dari dashboard
+    ],
+};
+```
+**Catatan:** Perhatikan `matcher` di sini lebih sederhana. Kita hanya menargetkan rute yang ingin kita lindungi secara eksplisit.
+
+#### Langkah 6: Integrasi Frontend
+
+Untuk mengatasi error `React Context is unavailable in Server Components`, kita perlu membuat komponen client terpisah untuk `SessionProvider`.
+
+**A. Buat Komponen `Providers.tsx`**
+
+Buat komponen client-side baru yang tugasnya hanya untuk membungkus `SessionProvider`.
+
+**File: `src/app/components/Providers.tsx`**
+```typescript
+'use client';
+
+import { SessionProvider } from 'next-auth/react';
+import React from 'react';
+
+interface Props {
+  children: React.ReactNode;
+}
+
+export default function Providers({ children }: Props) {
+  return <SessionProvider>{children}</SessionProvider>;
+}
+```
+
+**B. Perbarui `layout.tsx` untuk Menggunakan `Providers`**
+
+Sekarang, impor dan gunakan komponen `Providers` tersebut di dalam `layout.tsx` untuk membungkus `children` Anda.
+
+**File: `src/app/layout.tsx` (Yang Benar)**
+```typescript
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import Navbar from "@/app/components/Navbar";
+import Providers from "@/app/components/Providers"; // <-- Impor komponen baru
+
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "Create Next App",
+  description: "Generated by create next app",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body className={inter.className}>
+        {/* Bungkus children di dalam body, bukan seluruh html */}
+        <Providers>
+          <Navbar />
+          <main>{children}</main>
+        </Providers>
+      </body>
     </html>
-    ```
-    **Fungsi Kode:**
-    * `next/font` secara otomatis mengoptimalkan pemuatan font pada saat *build time*.
-    * Ini akan mengunduh file font dan menyajikannya dari domain Anda sendiri, menghilangkan permintaan tambahan ke Google Fonts, yang meningkatkan performa dan privasi.
-    * Ini juga secara otomatis mengatur properti CSS untuk mencegah **Cumulative Layout Shift (CLS)**.
+  );
+}
+```
+
+**C. Buat Tombol Login/Logout (`AuthButton.tsx`)**
+Komponen ini tidak berubah.
+
+**File: `src/app/components/AuthButton.tsx`**
+```typescript
+'use client';
+
+import { useSession, signIn, signOut } from 'next-auth/react';
+
+const AuthButton = () => {
+  const { data: session, status } = useSession();
+
+  if (status === 'loading') {
+    return <div className="w-24 h-9 bg-gray-200 animate-pulse rounded-md"></div>;
+  }
+
+  if (session) {
+    return (
+      <div className="flex items-center gap-4">
+        <p className="text-white hidden md:block">{session.user?.name}</p>
+        <button onClick={() => signOut()} className="bg-red-500 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-600 transition-colors">
+          Sign Out
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button onClick={() => signIn('github')} className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-600 transition-colors">
+      Sign In
+    </button>
+  );
+};
+
+export default AuthButton;
+```
+
+**D. Tambahkan Tombol ke Navbar (`Navbar.tsx`)**
+
+Terakhir, kita perbarui `Navbar.tsx` untuk menampilkan tombol login dan juga link "Dashboard" secara kondisional hanya untuk pengguna yang sudah login.
+
+**File: `src/app/components/Navbar.tsx` (Final)**
+```typescript
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react'; // Impor useSession
+import AuthButton from './AuthButton';
+
+const Navbar = () => {
+  const pathname = usePathname();
+  const { data: session } = useSession(); // Dapatkan data sesi
+
+  // Daftar link navigasi dasar
+  const navLinks = [
+    { name: 'Home', href: '/' },
+    { name: 'Projects', href: '/projects' },
+    { name: 'Skills', href: '/skill' },
+    { name: 'Contact', href: '/contact' },
+  ];
+
+  // Jika ada sesi (pengguna login), tambahkan link Dashboard ke daftar
+  if (session) {
+    navLinks.push({ name: 'Dashboard', href: '/dashboard' });
+  }
+
+  return (
+    <nav className="bg-gray-800 p-4 sticky top-0 z-50">
+      <div className="container mx-auto flex justify-between items-center">
+        <ul className="flex space-x-4">
+          {navLinks.map((link) => {
+            const isActive = pathname === link.href;
+            return (
+              <li key={link.name}>
+                <Link href={link.href} className={`${isActive ? 'text-blue-400 font-bold' : 'text-white'} hover:text-blue-300 transition-colors`}>
+                  {link.name}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+        <AuthButton />
+      </div>
+    </nav>
+  );
+};
+
+export default Navbar;
+```
+**Pembaruan Logika:** Kode ini sekarang menggunakan hook `useSession` untuk memeriksa apakah pengguna sudah login. Jika ya, link ke "Dashboard" akan ditambahkan secara dinamis ke dalam daftar navigasi. Ini adalah UX yang lebih baik.
 
 ### Tugas:
-1.  Tambahkan kolom `imageUrl` (string) ke model `Post` Anda di `schema.prisma` dan jalankan migrasi.
-2.  Saat menampilkan daftar post di halaman blog, gunakan komponen `<Image>` dari `next/image` untuk menampilkan gambar setiap post. Gunakan placeholder jika URL gambar tidak ada.
-3.  Gunakan `next/font` untuk menerapkan font yang berbeda untuk judul (`<h1>`, `<h2>`) dan teks paragraf biasa di seluruh aplikasi Anda.
+1.  Jalankan perintah instalasi dan downgrade dari Langkah 1.
+2.  Buat dan modifikasi file-file sesuai panduan v4 di atas.
+3.  Buat halaman `dashboard` jika belum ada.
+4.  Jalankan aplikasi dan tes alur login, akses halaman terproteksi, dan logout.
+
+---
+
+### Langkah Tambahan (Opsional): Autorisasi Pengguna
+
+Bagaimana jika Anda hanya ingin email tertentu yang bisa mengakses `/dashboard`, meskipun mereka sudah login? Ini disebut **autorisasi**.
+
+**1. Tambahkan Variabel Environment Baru**
+
+Tambahkan daftar email yang Anda izinkan ke file `.env.local`. Pisahkan dengan koma.
+
+**File: `.env.local`**
+```
+AUTH_SECRET="..."
+AUTH_GITHUB_ID="..."
+AUTH_GITHUB_SECRET="..."
+
+# Tambahkan variabel baru ini
+AUTHORIZED_EMAILS="email.anda@gmail.com,user_lain@example.com"
+```
+
+**2. Perbarui Middleware dengan Logika Autorisasi**
+
+Ganti kode di `src/middleware.ts` Anda untuk memeriksa apakah email pengguna yang login ada di dalam daftar yang diizinkan.
+
+**File: `src/middleware.ts` (Dengan Autorisasi)**
+```typescript
+import { getToken } from 'next-auth/jwt';
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function middleware(req: NextRequest) {
+    const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+
+    const protectedPaths = ['/dashboard'];
+    const isProtectedRoute = protectedPaths.some(path => req.nextUrl.pathname.startsWith(path));
+
+    // Jika pengguna mencoba mengakses halaman yang dilindungi...
+    if (isProtectedRoute) {
+        // 1. Jika mereka BELUM LOGIN (tidak ada token), alihkan.
+        if (!token) {
+            const url = req.nextUrl.clone();
+            url.pathname = '/';
+            return NextResponse.redirect(url);
+        }
+
+        // 2. Jika mereka SUDAH LOGIN, cek emailnya.
+        const authorizedEmails = (process.env.AUTHORIZED_EMAILS || "").split(",");
+        const isAuthorized = authorizedEmails.includes(token.email as string);
+
+        // Jika email pengguna TIDAK terdaftar, alihkan juga.
+        if (!isAuthorized) {
+            const url = req.nextUrl.clone();
+            url.pathname = '/'; // Alihkan ke halaman utama
+            return NextResponse.redirect(url);
+        }
+    }
+
+    // 3. Jika semua pemeriksaan lolos, izinkan akses.
+    return NextResponse.next();
+}
+
+export const config = {
+    matcher: [
+        '/dashboard/:path*',
+    ],
+};
+```
+Dengan ini, sekarang middleware Anda tidak hanya memeriksa *apakah* pengguna login, tetapi juga *siapa* pengguna yang login.
+
+---
+
+## Bab 8: Menyimpan Form Kontak ke Database dengan Prisma & Server Actions
+
+*   **Tujuan:** Meng-upgrade Form Kontak dari Bab 5. Daripada hanya menampilkan `alert`, kita akan menyimpan setiap pesan yang masuk ke dalam database PostgreSQL menggunakan Prisma, dan memproses form tersebut dengan **Server Actions**.
+*   **Proyek:** Membuat Form Kontak yang fungsional dan terhubung dengan database.
+
+### Konsep Utama
+
+*   **Prisma:** ORM (Object-Relational Mapper) modern untuk Node.js dan TypeScript. Prisma memudahkan kita berinteraksi dengan database menggunakan kode TypeScript, bukan SQL mentah.
+*   **Server Actions:** Fitur dari Next.js yang memungkinkan kita menjalankan kode di sisi server secara aman, langsung sebagai respons dari interaksi pengguna (seperti submit form), tanpa perlu membuat API route manual.
+*   **`useFormStatus`:** Hook dari React untuk mendapatkan status dari form submission terakhir (misalnya, "pending"), yang berguna untuk menampilkan UI loading pada tombol submit.
+
+---
+
+### Struktur Folder & File Baru
+
+```text
+next-project/
+├── prisma/
+│   └── schema.prisma   <-- DIMODIFIKASI: Menambahkan model baru
+└── src/
+    └── app/
+        ├── actions/
+        │   └── contact.ts  <-- BARU: Server Action untuk menyimpan data
+        └── (main)/
+            └── contact/
+                └── page.tsx    <-- DIMODIFIKASI: Menggunakan Server Action
+```
+
+---
+
+### Langkah-langkah Implementasi
+
+#### Langkah 1: Pengaturan Database (Supabase)
+
+Jika Anda belum melakukannya, buat proyek baru di [Supabase](https://supabase.com/) untuk mendapatkan database PostgreSQL gratis.
+
+Setelah proyek dibuat, navigasi ke **Project Settings > Database > Connection string** dan salin URL yang formatnya `postgresql://...`.
+
+Tambahkan URL ini ke file `.env.local` Anda.
+
+**File: `.env.local`**
+```
+# ... variabel lainnya
+DATABASE_URL="URL_KONEKSI_SUPABASE_ANDA"
+```
+
+#### Langkah 2: Instalasi & Setup Prisma
+
+Install Prisma Client di proyek Anda.
+
+```bash
+npm install prisma
+npx prisma init
+```
+
+Perintah `init` akan membuat folder `prisma` dengan file `schema.prisma`.
+
+#### Langkah 3: Definisikan Skema Database
+
+Buka file `prisma/schema.prisma` dan ganti isinya untuk mendefinisikan tabel `ContactSubmission`.
+
+**File: `prisma/schema.prisma`**
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Model untuk menyimpan pesan dari form kontak
+model ContactSubmission {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  message   String
+  createdAt DateTime @default(now())
+}
+```
+
+#### Langkah 4: Sinkronkan Skema dengan Database
+
+Jalankan perintah `migrate` dari Prisma. Ini akan membaca `schema.prisma` Anda dan membuat tabel `ContactSubmission` yang sesuai di database Supabase Anda.
+
+```bash
+npx prisma migrate dev --name init_contact_submission
+```
+Setelah ini, jalankan juga `prisma generate` untuk memperbarui Prisma Client Anda:
+```bash
+npx prisma generate
+```
+
+#### Langkah 5: Buat Server Action
+
+Ini adalah inti dari logika kita. Buat folder `actions` di dalam `src/app`, lalu buat file `contact.ts`.
+
+**File: `src/app/actions/contact.ts`**
+```typescript
+'use server';
+
+import { z } from 'zod';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+// Definisikan skema validasi menggunakan Zod
+const contactSchema = z.object({
+  name: z.string().min(3, { message: "Nama harus lebih dari 2 karakter." }),
+  email: z.string().email({ message: "Format email tidak valid." }),
+  message: z.string().min(10, { message: "Pesan harus lebih dari 10 karakter." }),
+});
+
+// Definisikan satu bentuk state yang konsisten
+export type ContactFormState = {
+  message: string | null;
+  errors?: {
+    name?: string[];
+    email?: string[];
+    message?: string[];
+  };
+};
+
+// Server Action
+export async function saveContactSubmission(
+  prevState: ContactFormState,
+  formData: FormData
+): Promise<ContactFormState> {
+  const validatedFields = contactSchema.safeParse({
+    name: formData.get('name'),
+    email: formData.get('email'),
+    message: formData.get('message'),
+  });
+
+  // Jika validasi gagal, kembalikan message dan errors
+  if (!validatedFields.success) {
+    return {
+      message: "Validasi gagal, silakan perbaiki form.",
+      errors: validatedFields.error.flatten().fieldErrors,
+    };
+  }
+
+  // Jika validasi berhasil, simpan ke database
+  try {
+    await prisma.contactSubmission.create({
+      data: {
+        name: validatedFields.data.name,
+        email: validatedFields.data.email,
+        message: validatedFields.data.message,
+      },
+    });
+    // Kembalikan message sukses dan object errors kosong
+    return { message: "Pesan berhasil terkirim!", errors: {} };
+  } catch (e) {
+    // Kembalikan message error dan object errors kosong
+    return { message: "Gagal menyimpan pesan ke database.", errors: {} };
+  }
+}
+```
+**Fungsi Kode:**
+*   `'use server'`: Menandai bahwa semua fungsi di dalam file ini adalah Server Actions dan hanya berjalan di server.
+*   **Zod:** Kita menggunakan library `zod` untuk validasi data di server, ini lebih aman daripada validasi di client saja. (Jalankan `npm install zod`).
+*   `saveContactSubmission`: Fungsi ini menerima `formData` langsung dari form. Ia melakukan validasi, dan jika berhasil, ia menggunakan `prisma.contactSubmission.create` untuk membuat entri baru di database.
+
+#### Langkah 6: Refaktor Halaman Kontak
+
+Terakhir, kita refaktor total halaman kontak untuk menggunakan Server Action dan menampilkan feedback.
+
+**File: `src/app/(main)/contact/page.tsx` (Final)**
+```typescript
+'use client';
+
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
+import { saveContactSubmission } from '@/app/actions/contact';
+
+const initialState = {
+    message: null,
+    errors: {},
+};
+
+// Komponen terpisah untuk Tombol Submit agar bisa menggunakan useFormStatus
+function SubmitButton() {
+    const { pending } = useFormStatus();
+
+    return (
+        <button
+            type="submit"
+    disabled={pending}
+    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full transition-colors disabled:bg-gray-400"
+        >
+        {pending ? 'Mengirim...' : 'Kirim Pesan'}
+        </button>
+);
+}
+
+export default function ContactPage() {
+    const [state, formAction] = useActionState(saveContactSubmission, initialState);
+
+    return (
+        <section className="p-8 md:p-16">
+        <h2 className="text-3xl font-bold mb-8">Hubungi Saya</h2>
+    <form action={formAction} className="max-w-lg mx-auto space-y-4">
+    <div>
+        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+        Nama
+        </label>
+        <input type="text" id="name" name="name" required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"/>
+        {state.errors?.name && <p className="text-red-500 text-sm mt-1">{state.errors.name[0]}</p>}
+            </div>
+
+            <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email
+                </label>
+                <input type="email" id="email" name="email" required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"/>
+                {state.errors?.email && <p className="text-red-500 text-sm mt-1">{state.errors.email[0]}</p>}
+                    </div>
+
+                    <div>
+                    <label htmlFor="message" className="block text-sm font-medium text-gray-700">
+                        Pesan
+                        </label>
+                        <textarea id="message" name="message" rows={5} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"/>
+                        {state.errors?.message && <p className="text-red-500 text-sm mt-1">{state.errors.message[0]}</p>}
+                                </div>
+
+                                <SubmitButton />
+
+                                {state.message && <p className="text-green-600 mt-4">{state.message}</p>}
+                                        </form>
+                                        </section>
+);
+}
+```
+**Fungsi Kode:**
+*   `useFormState`: Hook untuk mengelola state form yang ditangani oleh Server Action. `state` akan berisi `message` atau `errors` yang dikembalikan dari `saveContactSubmission`.
+*   `useFormStatus`: Hook yang hanya bisa digunakan di dalam komponen anak dari `<form>`. Ia memberikan status `pending` (apakah form sedang di-submit).
+*   `<form action={formAction}>`: Kita tidak lagi menggunakan `onSubmit`. Atribut `action` yang diisi dengan Server Action akan secara otomatis menangani form submission dengan JavaScript di client, tetapi menjalankan logika di server.
+
+### Tugas:
+1.  Ikuti semua langkah di atas untuk menghubungkan form kontak Anda ke database.
+2.  Pastikan Anda sudah membuat proyek Supabase dan menambahkan `DATABASE_URL` ke `.env.local`.
+3.  Jalankan `npm install zod` dan `npm install @prisma/client`.
+4.  Kirim pesan melalui form kontak dan periksa tabel `ContactSubmission` di Supabase untuk melihat apakah data berhasil masuk.
+
+---
+
+## Bab 9: Performa & Optimisasi Aplikasi
+
+*   **Tujuan:** Mempelajari dan menerapkan teknik-teknik optimisasi kunci di Next.js untuk membuat aplikasi kita lebih cepat, lebih efisien, dan memberikan pengalaman pengguna yang lebih baik.
+*   **Proyek:** Mengoptimalkan font, gambar, dan menganalisis ukuran aplikasi portofolio kita.
+
+### Konsep Utama
+
+*   **`next/font`:** Sistem optimisasi font dari Next.js. Ia akan mengunduh font pada saat *build time* dan menyajikannya dari domain Anda sendiri, menghilangkan permintaan jaringan tambahan ke Google Fonts, yang meningkatkan privasi dan performa.
+*   **`next/image`:** Komponen gambar bawaan Next.js. Ia secara otomatis melakukan optimisasi gambar (resizing, format modern seperti WebP, lazy loading) untuk memastikan gambar dimuat secepat mungkin tanpa mengorbankan kualitas.
+*   **Bundle Analyzer:** Sebuah alat bantu untuk memvisualisasikan ukuran dari setiap *package* JavaScript yang membentuk aplikasi Anda. Ini sangat berguna untuk mengidentifikasi library mana yang paling memakan tempat dan perlu dioptimalkan.
+
+---
+
+### Langkah-langkah Implementasi
+
+#### Langkah 1: Optimisasi Font dengan `next/font`
+
+Saat ini, aplikasi kita menggunakan font default dari browser. Mari kita ganti dengan kombinasi font yang lebih menarik dan efisien dari Google Fonts. Kita akan menggunakan "Inter" untuk teks utama dan "Poppins" untuk judul.
+
+Buka file `src/app/layout.tsx` dan perbarui isinya.
+
+**File: `src/app/layout.tsx` (Dengan Optimisasi Font)**
+```typescript
+import type { Metadata } from "next";
+// 1. Impor font yang diinginkan dari next/font/google
+import { Inter, Poppins } from "next/font/google";
+import "./globals.css";
+import Navbar from "@/app/components/Navbar";
+import Providers from "@/app/components/Providers";
+
+// 2. Konfigurasi font
+const inter = Inter({
+  subsets: ["latin"],
+  variable: '--font-inter', // Buat CSS variable untuk font ini
+  display: 'swap',
+});
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ['400', '700'], // Tentukan ketebalan yang akan digunakan
+  variable: '--font-poppins', // Buat CSS variable
+  display: 'swap',
+});
+
+export const metadata: Metadata = {
+  title: "Create Next App",
+  description: "Generated by create next app",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    // 3. Terapkan variabel font ke tag <html>
+    <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
+      <body>
+        <Providers>
+          <Navbar />
+          <main>{children}</main>
+        </Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+Selanjutnya, kita perlu memberitahu Tailwind CSS cara menggunakan variabel font ini. Buka `tailwind.config.js` (atau `tailwind.config.ts`).
+
+**File: `tailwind.config.js`**
+```js
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      // 4. Tambahkan fontFamily
+      fontFamily: {
+        sans: ['var(--font-inter)'],
+        mono: ['var(--font-poppins)'],
+      },
+    },
+  },
+  plugins: [],
+};
+```
+Dengan ini, semua teks paragraf akan menggunakan font Inter, dan Anda bisa menggunakan kelas `font-mono` dari Tailwind untuk menerapkan font Poppins pada judul.
+
+#### Langkah 2: Optimisasi Gambar dengan `next/image`
+
+Halaman "Proyek" kita saat ini belum memiliki gambar. Mari kita tambahkan dan optimalkan.
+
+**A. Perbarui Data Proyek**
+
+Buka file halaman proyek Anda (kemungkinan di `src/app/(main)/projects/page.tsx` atau di mana Anda mendefinisikan `projectsData`) dan tambahkan properti `imageUrl` ke setiap objek proyek. Kita akan menggunakan layanan placeholder `https://placehold.co`.
+
+```typescript
+// Contoh data proyek yang diperbarui
+const projectsData = [
+  {
+    title: 'Website Portofolio',
+    description: 'Portofolio pribadi yang dibangun dengan Next.js dan Tailwind CSS.',
+    tech: ['Next.js', 'TypeScript', 'Tailwind CSS'],
+    imageUrl: 'https://placehold.co/600x400/000000/FFFFFF/png?text=Proyek+1',
+  },
+  {
+    title: 'Aplikasi To-Do List',
+    description: 'Aplikasi sederhana untuk manajemen tugas harian.',
+    tech: ['React', 'Zustand'],
+    imageUrl: 'https://placehold.co/600x400/555555/FFFFFF/png?text=Proyek+2',
+  },
+  // ... proyek lainnya
+];
+```
+
+**B. Perbarui Komponen `Card.tsx`**
+
+Sekarang, modifikasi komponen `Card.tsx` untuk menerima `imageUrl` dan menampilkannya dengan `<Image>`.
+
+**File: `src/app/components/Card.tsx` (Dengan Optimisasi Gambar)**
+```typescript
+import Image from 'next/image'; // 1. Impor komponen Image
+
+export interface CardProps {
+  title: string;
+  description: string;
+  tech: string[];
+  imageUrl: string; // 2. Tambahkan imageUrl ke interface
+}
+
+const Card = ({ title, description, tech, imageUrl }: CardProps) => {
+  return (
+    <div className="border rounded-lg shadow-md overflow-hidden h-full">
+      {/* 3. Gunakan komponen Image */}
+      <div className="relative w-full h-48">
+        <Image
+          src={imageUrl}
+          alt={`Gambar screenshot dari proyek ${title}`}
+          fill
+          style={{ objectFit: 'cover' }} // atau gunakan className="object-cover"
+        />
+      </div>
+      <div className="p-4">
+        <h3 className="text-xl font-semibold">{title}</h3>
+        <p className="mt-2 text-gray-600">{description}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {tech.map((t) => (
+            <span key={t} className="bg-gray-200 px-2 py-1 rounded-full text-sm">
+              {t}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Card;
+```
+**Fungsi Kode:**
+*   `import Image from 'next/image'`: Mengimpor komponen yang diperlukan.
+*   `fill`: Prop ini membuat gambar mengisi elemen induknya (`div` dengan `relative w-full h-48`). Ini adalah cara modern untuk membuat gambar responsif.
+*   `style={{ objectFit: 'cover' }}`: Memastikan gambar menutupi seluruh area tanpa distorsi, mirip seperti `background-size: cover`.
+
+#### Langkah 3 (Opsional): Menganalisis Ukuran Bundle
+
+Ingin tahu library mana yang paling besar di proyek Anda? Gunakan `@next/bundle-analyzer`.
+
+**A. Instalasi**
+```bash
+npm install @next/bundle-analyzer
+```
+
+**B. Konfigurasi `next.config.ts`**
+Buka `next.config.ts` dan bungkus konfigurasi Anda dengan `withBundleAnalyzer`.
+
+**File: `next.config.ts`**
+```typescript
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+})
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Konfigurasi Next.js Anda lainnya di sini
+};
+
+module.exports = withBundleAnalyzer(nextConfig);
+```
+
+**C. Tambahkan Script ke `package.json`**
+Buka `package.json` dan tambahkan script `analyze`.
+
+**File: `package.json`**
+```json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "analyze": "ANALYZE=true npm run build"
+  },
+  ...
+}
+```
+
+Sekarang, setiap kali Anda menjalankan `npm run analyze`, proses build akan berjalan dan di akhir akan membuka dua tab di browser Anda yang menunjukkan visualisasi bundle untuk server dan client.
+
+### Tugas:
+1.  Terapkan optimisasi font menggunakan `next/font` di `layout.tsx` dan `tailwind.config.js`.
+2.  Perbarui data proyek Anda dengan `imageUrl` dan modifikasi komponen `Card.tsx` untuk menggunakan `<Image>`.
+3.  (Opsional) Coba jalankan bundle analyzer untuk melihat "peta" dari ukuran aplikasi Anda. Aplikasi
+
+*   **Tujuan:** Mempelajari dan menerapkan teknik-teknik optimisasi kunci di Next.js untuk membuat aplikasi kita lebih cepat, lebih efisien, dan memberikan pengalaman pengguna yang lebih baik.
+*   **Proyek:** Mengoptimalkan font, gambar, dan menganalisis ukuran aplikasi portofolio kita.
+
+### Konsep Utama
+
+*   **`next/font`:** Sistem optimisasi font dari Next.js. Ia akan mengunduh font pada saat *build time* dan menyajikannya dari domain Anda sendiri, menghilangkan permintaan jaringan tambahan ke Google Fonts, yang meningkatkan privasi dan performa.
+*   **`next/image`:** Komponen gambar bawaan Next.js. Ia secara otomatis melakukan optimisasi gambar (resizing, format modern seperti WebP, lazy loading) untuk memastikan gambar dimuat secepat mungkin tanpa mengorbankan kualitas.
+*   **Bundle Analyzer:** Sebuah alat bantu untuk memvisualisasikan ukuran dari setiap *package* JavaScript yang membentuk aplikasi Anda. Ini sangat berguna untuk mengidentifikasi library mana yang paling memakan tempat dan perlu dioptimalkan.
+
+---
+
+### Langkah-langkah Implementasi
+
+#### Langkah 1: Optimisasi Font dengan `next/font`
+
+Saat ini, aplikasi kita menggunakan font default dari browser. Mari kita ganti dengan kombinasi font yang lebih menarik dan efisien dari Google Fonts. Kita akan menggunakan "Inter" untuk teks utama dan "Poppins" untuk judul.
+
+Buka file `src/app/layout.tsx` dan perbarui isinya.
+
+**File: `src/app/layout.tsx` (Dengan Optimisasi Font)**
+```typescript
+import type { Metadata } from "next";
+// 1. Impor font yang diinginkan dari next/font/google
+import { Inter, Poppins } from "next/font/google";
+import "./globals.css";
+import Navbar from "@/app/components/Navbar";
+import Providers from "@/app/components/Providers";
+
+// 2. Konfigurasi font
+const inter = Inter({
+  subsets: ["latin"],
+  variable: '--font-inter', // Buat CSS variable untuk font ini
+  display: 'swap',
+});
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ['400', '700'], // Tentukan ketebalan yang akan digunakan
+  variable: '--font-poppins', // Buat CSS variable
+  display: 'swap',
+});
+
+export const metadata: Metadata = {
+  title: "Create Next App",
+  description: "Generated by create next app",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    // 3. Terapkan variabel font ke tag <html>
+    <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
+      <body>
+        <Providers>
+          <Navbar />
+          <main>{children}</main>
+        </Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+Selanjutnya, kita perlu memberitahu Tailwind CSS cara menggunakan variabel font ini. Buka `tailwind.config.js` (atau `tailwind.config.ts`).
+
+**File: `tailwind.config.js`**
+```js
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      // 4. Tambahkan fontFamily
+      fontFamily: {
+        sans: ['var(--font-inter)'],
+        mono: ['var(--font-poppins)'],
+      },
+    },
+  },
+  plugins: [],
+};
+```
+Dengan ini, semua teks paragraf akan menggunakan font Inter, dan Anda bisa menggunakan kelas `font-mono` dari Tailwind untuk menerapkan font Poppins pada judul.
+
+#### Langkah 2: Optimisasi Gambar dengan `next/image`
+
+Halaman "Proyek" kita saat ini belum memiliki gambar. Mari kita tambahkan dan optimalkan.
+
+**A. Perbarui Data Proyek**
+
+Buka file halaman proyek Anda (kemungkinan di `src/app/(main)/projects/page.tsx` atau di mana Anda mendefinisikan `projectsData`) dan tambahkan properti `imageUrl` ke setiap objek proyek. Kita akan menggunakan layanan placeholder `https://placehold.co`.
+
+```typescript
+// Contoh data proyek yang diperbarui
+const projectsData = [
+  {
+    title: 'Website Portofolio',
+    description: 'Portofolio pribadi yang dibangun dengan Next.js dan Tailwind CSS.',
+    tech: ['Next.js', 'TypeScript', 'Tailwind CSS'],
+    imageUrl: 'https://placehold.co/600x400/000000/FFFFFF/png?text=Proyek+1',
+  },
+  {
+    title: 'Aplikasi To-Do List',
+    description: 'Aplikasi sederhana untuk manajemen tugas harian.',
+    tech: ['React', 'Zustand'],
+    imageUrl: 'https://placehold.co/600x400/555555/FFFFFF/png?text=Proyek+2',
+  },
+  // ... proyek lainnya
+];
+```
+
+**B. Perbarui Komponen `Card.tsx`**
+
+Sekarang, modifikasi komponen `Card.tsx` untuk menerima `imageUrl` dan menampilkannya dengan `<Image>`.
+
+**File: `src/app/components/Card.tsx` (Dengan Optimisasi Gambar)**
+```typescript
+import Image from 'next/image'; // 1. Impor komponen Image
+
+export interface CardProps {
+  title: string;
+  description: string;
+  tech: string[];
+  imageUrl: string; // 2. Tambahkan imageUrl ke interface
+}
+
+const Card = ({ title, description, tech, imageUrl }: CardProps) => {
+  return (
+    <div className="border rounded-lg shadow-md overflow-hidden h-full">
+      {/* 3. Gunakan komponen Image */}
+      <div className="relative w-full h-48">
+        <Image
+          src={imageUrl}
+          alt={`Gambar screenshot dari proyek ${title}`}
+          fill
+          style={{ objectFit: 'cover' }} // atau gunakan className="object-cover"
+        />
+      </div>
+      <div className="p-4">
+        <h3 className="text-xl font-semibold">{title}</h3>
+        <p className="mt-2 text-gray-600">{description}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {tech.map((t) => (
+            <span key={t} className="bg-gray-200 px-2 py-1 rounded-full text-sm">
+              {t}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Card;
+```
+**Fungsi Kode:**
+*   `import Image from 'next/image'`: Mengimpor komponen yang diperlukan.
+*   `fill`: Prop ini membuat gambar mengisi elemen induknya (`div` dengan `relative w-full h-48`). Ini adalah cara modern untuk membuat gambar responsif.
+*   `style={{ objectFit: 'cover' }}`: Memastikan gambar menutupi seluruh area tanpa distorsi, mirip seperti `background-size: cover`.
+
+#### Langkah 3 (Opsional): Menganalisis Ukuran Bundle
+
+Ingin tahu library mana yang paling besar di proyek Anda? Gunakan `@next/bundle-analyzer`.
+
+**A. Instalasi**
+```bash
+npm install @next/bundle-analyzer
+```
+
+**B. Konfigurasi `next.config.ts`**
+Buka `next.config.ts` dan bungkus konfigurasi Anda dengan `withBundleAnalyzer`.
+
+**File: `next.config.ts`**
+```typescript
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+})
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Konfigurasi Next.js Anda lainnya di sini
+};
+
+module.exports = withBundleAnalyzer(nextConfig);
+```
+
+**C. Tambahkan Script ke `package.json`**
+Buka `package.json` dan tambahkan script `analyze`.
+
+**File: `package.json`**
+```json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "analyze": "ANALYZE=true npm run build"
+  },
+  ...
+}
+```
+
+Sekarang, setiap kali Anda menjalankan `npm run analyze`, proses build akan berjalan dan di akhir akan membuka dua tab di browser Anda yang menunjukkan visualisasi bundle untuk server dan client.
+
+### Tugas:
+1.  Terapkan optimisasi font menggunakan `next/font` di `layout.tsx` dan `tailwind.config.js`.
+2.  Perbarui data proyek Anda dengan `imageUrl` dan modifikasi komponen `Card.tsx` untuk menggunakan `<Image>`.
+3.  (Opsional) Coba jalankan bundle analyzer untuk melihat "peta" dari ukuran aplikasi Anda.
 
 ---
 

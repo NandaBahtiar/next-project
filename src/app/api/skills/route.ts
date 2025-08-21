@@ -1,4 +1,4 @@
-import SkillCard, {CardSkill} from "@/app/components/SkillCard";
+import {CardSkill} from "@/app/components/SkillCard";
 
 const skills: CardSkill[]=[
     { id: 1, skillName: 'Next.js', level: 'Advanced' as const },

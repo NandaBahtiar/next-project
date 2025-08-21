@@ -1,5 +1,5 @@
 "use client";
-import { env } from 'node:process';
+
 import React, {useEffect, useState} from 'react';
 // Import kedua komponen generik untuk perbandingan
 import ApiDrivenList from '@/app/components/ApiDrivenList'; // Pendekatan 2
@@ -10,12 +10,7 @@ import SkillCard, {CardSkill} from "@/app/components/SkillCard";
 import { projek } from "@/app/api/projects/route";
 
 
-const skillData = [
-    { id: 1, skillName: 'Next.js', level: 'Advanced' as const },
-    { id: 2, skillName: 'TypeScript', level: 'Intermediate' as const },
-    { id: 3, skillName: 'React', level: 'Advanced' as const },
-    { id: 4, skillName: 'JavaScript', level: 'Advanced' as const },
-];
+
 
 const Page = () => {
     const [skill,setSkill] = useState <CardSkill[]>([])
