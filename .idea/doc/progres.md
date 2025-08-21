@@ -87,10 +87,10 @@ Ini adalah daftar progres yang akan saya kerjakan berdasarkan kurikulum dari `ma
 - [ ] Pastikan tipe data skill Anda memiliki properti `id` agar sesuai dengan *constraint* komponen `List`.
 
 ### Verifikasi AI:
-- [ ] Refaktor halaman `skills/page.tsx` yang Anda buat sebelumnya.
-- [ ] Impor komponen generik `<List>` yang baru dibuat.
-- [ ] Gunakan `<List>` untuk merender daftar `SkillCard`. Anda perlu memberikan data ke `prop` `items` dan logika render untuk `SkillCard` ke `prop` `renderItem`.
-- [ ] Pastikan tipe data skill Anda memiliki properti `id` agar sesuai dengan *constraint* komponen `List`.
+- [x] Refaktor halaman `skills/page.tsx` yang Anda buat sebelumnya.
+- [x] Impor komponen generik `<List>` yang baru dibuat.
+- [x] Gunakan `<List>` untuk merender daftar `SkillCard`. Anda perlu memberikan data ke `prop` `items` dan logika render untuk `SkillCard` ke `prop` `renderItem`.
+- [x] Pastikan tipe data skill Anda memiliki properti `id` agar sesuai dengan *constraint* komponen `List`.
 
 ---
 
