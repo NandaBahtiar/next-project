@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useSession } from 'next-auth/react'; // Impor useSession
-import AuthButton from './AuthButton';
+import { useSession } from 'next-auth/react';
+import AuthButton from "@/app/components/AuthButton";
+import React from "react"; // Impor useSession
+
 
 const Navbar = () => {
     const pathname = usePathname();
@@ -37,7 +39,8 @@ const Navbar = () => {
                         );
                     })}
                 </ul>
-                <AuthButton />
+                <AuthButton/>
+
             </div>
         </nav>
     );

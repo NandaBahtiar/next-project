@@ -2,28 +2,27 @@
 
 import { PrismaClient } from '@/generated/prisma';
 import { z } from 'zod';
-import {revalidatePath} from "next/cache";
+import { revalidatePath } from "next/cache";
+import { Resend } from 'resend';
+import { NewMessageEmail } from '@/app/components/emails/NewMessageEmail';
+import {EmailTemplate} from "@/app/components/emails/EmailTemplate"; // <-- Impor template email
 
 const prisma = new PrismaClient();
+const resend = new Resend(process.env.RESEND_API_KEY); // <-- Inisialisasi Resend
 
-// Definisikan skema validasi menggunakan Zod
+// ... (skema Zod dan type ContactFormState tetap sama) ...
 const contactSchema = z.object({
     name: z.string().min(3, { message: "Nama harus lebih dari 2 karakter." }),
     email: z.string().email({ message: "Format email tidak valid." }),
     message: z.string().min(5, { message: "Pesan harus lebih dari 10 karakter." }),
 });
 
-// Definisikan satu bentuk state yang konsisten
 export type ContactFormState = {
     message: string | null;
-    errors?: {
-        name?: string[];
-        email?: string[];
-        message?: string[];
-    };
+    errors?: { name?: string[]; email?: string[]; message?: string[]; };
 };
 
-// Server Action
+
 export async function saveContactSubmission(
     prevState: ContactFormState,
     formData: FormData
@@ -34,7 +33,6 @@ export async function saveContactSubmission(
         message: formData.get('message'),
     });
 
-    // Jika validasi gagal, kembalikan message dan errors
     if (!validatedFields.success) {
         return {
             message: "Validasi gagal, silakan perbaiki form.",
@@ -42,22 +40,38 @@ export async function saveContactSubmission(
         };
     }
 
-    // Jika validasi berhasil, simpan ke database
+    const { name, email, message } = validatedFields.data;
+
     try {
+        // 1. Simpan data ke database (tetap sama)
         await prisma.contactSubmission.create({
-            data: {
-                name: validatedFields.data.name,
-                email: validatedFields.data.email,
-                message: validatedFields.data.message,
-            },
+            data: { name, email, message },
         });
-        // Kembalikan message sukses dan object errors kosong
-        return { message: "Pesan berhasil terkirim!", errors: {} };
+
+        // 2. Kirim notifikasi email setelah berhasil menyimpan
+        try {
+            await resend.emails.send({
+                from: 'onboarding@resend.dev', // Ganti dengan email domain Anda jika sudah diverifikasi
+                to: 'nandabahtiar1@gmail.com', // << GANTI DENGAN EMAIL ANDA
+                subject: `Pesan Baru dari ${name}`,
+                react: EmailTemplate({ firstName: 'John' }),
+            });
+        } catch (emailError) {
+            console.error("Gagal mengirim email:", emailError);
+            // Jika email gagal, jangan gagalkan seluruh proses.
+            // Cukup kembalikan pesan sukses dengan catatan.
+            return { message: "Pesan berhasil terkirim, namun notifikasi email gagal dikirim.", errors: {} };
+        }
+
+        return { message: "Pesan berhasil terkirim dan notifikasi email telah dikirim!", errors: {} };
+
     } catch (e) {
         console.error("Error saving contact submission:", e);
-        return { message: `Gagal menyimpan pesan ke database: ${e instanceof Error ? e.message : 'Unknown error'}`, errors: {} };
+        return { message: `Gagal menyimpan pesan: ${e instanceof Error ? e.message : 'Unknown error'}`, errors: {} };
     }
 }
+
+
 export async function deleteSubmission(id: number) {
         // Server Action untuk menghapus data berdasarkan ID
     try {

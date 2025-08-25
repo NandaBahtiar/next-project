@@ -4,6 +4,8 @@ import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
  import Providers from "@/app/components/Providers";
 import Navbar from "@/app/components/NavBar";
+import Footer from "@/app/components/Footer";
+ import React from "react";
 
 // 2. Konfigurasi font
 const inter = Inter({
@@ -30,13 +32,13 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
-        <body className={inter.className}>
-        {/* Bungkus children di dalam body, bukan seluruh html */}
-        <Providers>
-            <Navbar />
-            <main>{children}</main>
-        </Providers>
-        </body>
+            <body className={`${inter.className} flex flex-col min-h-screen`}>
+                <Providers>
+                    <Navbar />
+                    <main className="flex-grow">{children}</main>
+                    <Footer />
+                </Providers>
+            </body>
         </html>
     );
 }
