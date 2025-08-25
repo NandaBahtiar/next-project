@@ -1,12 +1,15 @@
-import React from 'react'
+import React from 'react';
+import Image from 'next/image'; // <-- Impor Image
 
 export interface CardSkill {
     id: number;
     skillName: string;
     level: 'Beginner' | 'Intermediate' | 'Advanced';
+    imageUrl: string; // <-- Tambahkan imageUrl ke interface
 }
 
-const SkillCard = ({ skillName, level }: CardSkill) => {
+const SkillCard = ({ skillName, level, imageUrl }: CardSkill) => { // <-- Terima imageUrl
+    // ... (fungsi getLevelColor dan getLevelIcon tetap sama) ...
     const getLevelColor = (level: string) => {
         switch (level) {
             case 'Advanced':
@@ -20,48 +23,25 @@ const SkillCard = ({ skillName, level }: CardSkill) => {
         }
     };
 
-    const getLevelIcon = (level: string) => {
-        switch (level) {
-            case 'Advanced':
-                return '🚀';
-            case 'Intermediate':
-                return '⚡';
-            case 'Beginner':
-                return '🌱';
-            default:
-                return '📚';
-        }
-    };
-
     return (
-        <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-3">
+        <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-gray-200 p-4 flex items-center gap-4">
+            {/* Tampilkan Gambar */}
+            <div className="relative w-16 h-16 flex-shrink-0">
+                <Image
+                    src={imageUrl}
+                    alt={`Ikon untuk ${skillName}`}
+                    fill
+                    className="object-contain"
+                />
+            </div>
+
+            <div className="flex-grow">
                 <h3 className="text-lg font-semibold text-gray-900 truncate">
                     {skillName}
                 </h3>
-                <span className="text-xl">{getLevelIcon(level)}</span>
-            </div>
-
-            <div className="flex items-center justify-between">
                 <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getLevelColor(level)}`}>
                     {level}
                 </span>
-
-                {/* Progress bar visual */}
-                <div className="flex space-x-1 ml-3">
-                    {[1, 2, 3].map((dot) => (
-                        <div
-                            key={dot}
-                            className={`w-2 h-2 rounded-full ${
-                                (level === 'Advanced' && dot <= 3) ||
-                                (level === 'Intermediate' && dot <= 2) ||
-                                (level === 'Beginner' && dot <= 1)
-                                    ? 'bg-current opacity-80'
-                                    : 'bg-gray-300'
-                            } ${getLevelColor(level).split(' ')[1]}`}
-                        />
-                    ))}
-                </div>
             </div>
         </div>
     );

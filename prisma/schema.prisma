@@ -20,5 +20,6 @@ model ContactSubmission {
   name      String
   email     String
   message   String
+  isRead    Boolean  @default(false) // <-- TAMBAHKAN BARIS INI
   createdAt DateTime @default(now())
 }

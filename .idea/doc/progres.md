@@ -140,14 +140,14 @@ Ini adalah daftar progres yang akan saya kerjakan berdasarkan kurikulum dari `ma
 
 ## Bab 9: Performa & Optimisasi
 
-- [ ] Tambahkan kolom `imageUrl` (string) ke model `Post` Anda di `schema.prisma` dan jalankan migrasi.
-- [ ] Saat menampilkan daftar post di halaman blog, gunakan komponen `<Image>` dari `next/image` untuk menampilkan gambar setiap post. Gunakan placeholder jika URL gambar tidak ada.
-- [ ] Gunakan `next/font` untuk menerapkan font yang berbeda untuk judul (`<h1>`, `<h2>`) dan teks paragraf biasa di seluruh aplikasi Anda.
+- [x] Terapkan optimisasi font menggunakan `next/font` di `layout.tsx` dan `tailwind.config.js`.
+- [x] Terapkan optimisasi gambar menggunakan `next/image` pada komponen kartu (SkillCard).
+- [x] (Opsional) Konfigurasikan `@next/bundle-analyzer` untuk menganalisis ukuran aplikasi.
 
 ### Verifikasi AI:
-- [ ] Tambahkan kolom `imageUrl` (string) ke model `Post` Anda di `schema.prisma` dan jalankan migrasi.
-- [ ] Saat menampilkan daftar post di halaman blog, gunakan komponen `<Image>` dari `next/image` untuk menampilkan gambar setiap post. Gunakan placeholder jika URL gambar tidak ada.
-- [ ] Gunakan `next/font` untuk menerapkan font yang berbeda untuk judul (`<h1>`, `<h2>`) dan teks paragraf biasa di seluruh aplikasi Anda.
+- [x] Terapkan optimisasi font menggunakan `next/font` di `layout.tsx` dan `tailwind.config.js`.
+- [x] Terapkan optimisasi gambar menggunakan `next/image` pada komponen kartu (SkillCard).
+- [x] (Opsional) Konfigurasikan `@next/bundle-analyzer` untuk menganalisis ukuran aplikasi.
 
 ---
 

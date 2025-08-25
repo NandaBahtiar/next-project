@@ -1049,7 +1049,415 @@ export default function ContactPage() {
 
 ---
 
+### Langkah Tambahan: Membuat Dashboard CRUD untuk Pesan
+
+Setelah bisa menyimpan pesan, mari kita buat halaman dashboard untuk melihat (`Read`) dan menghapus (`Delete`) pesan tersebut.
+
+**1. Halaman Dashboard untuk Menampilkan & Menghapus Pesan**
+
+Kita akan ubah `/dashboard/page.tsx` menjadi Server Component yang mengambil semua pesan dari database dan juga menyertakan logika untuk menghapus pesan.
+
+**File: `src/app/dashboard/page.tsx` (Final)**
+```typescript
+import prisma from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
+
+// Komponen Tombol Hapus (didefinisikan di file yang sama)
+// Ini adalah Client Component karena menggunakan event handler `onClick`,
+// namun Server Action di dalamnya berjalan di server.
+function DeleteButton({ id }: { id: number }) {
+  // Server Action untuk menghapus data berdasarkan ID
+  async function deleteSubmission() {
+    'use server';
+    try {
+      await prisma.contactSubmission.delete({
+        where: { id },
+      });
+      // Revalidasi path untuk memuat ulang data di halaman dashboard
+      revalidatePath('/dashboard');
+    } catch (error) {
+      console.error("Gagal menghapus pesan:", error);
+    }
+  };
+
+  return (
+    <form action={deleteSubmission}>
+      <button type="submit" className="text-red-500 hover:text-red-700 font-semibold">
+        Hapus
+      </button>
+    </form>
+  );
+}
+
+
+// Halaman Dashboard (Server Component)
+export default async function DashboardPage() {
+  const submissions = await prisma.contactSubmission.findMany({
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return (
+    <div className="container mx-auto p-8">
+      <h1 className="text-3xl font-bold mb-8">Pesan Masuk</h1>
+      <div className="bg-white shadow-md rounded-lg overflow-hidden">
+        <table className="min-w-full table-auto">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="text-left py-3 px-4 font-semibold text-sm">Nama</th>
+              <th className="text-left py-3 px-4 font-semibold text-sm">Email</th>
+              <th className="text-left py-3 px-4 font-semibold text-sm">Pesan</th>
+              <th className="text-left py-3 px-4 font-semibold text-sm">Tanggal</th>
+              <th className="text-left py-3 px-4 font-semibold text-sm">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="text-gray-700">
+            {submissions.map((submission) => (
+              <tr key={submission.id} className="border-b border-gray-200 hover:bg-gray-50">
+                <td className="py-3 px-4">{submission.name}</td>
+                <td className="py-3 px-4">{submission.email}</td>
+                <td className="py-3 px-4"><p className="line-clamp-2">{submission.message}</p></td>
+                <td className="py-3 px-4">{submission.createdAt.toLocaleDateString()}</td>
+                <td className="py-3 px-4">
+                  <DeleteButton id={submission.id} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {submissions.length === 0 && (
+          <p className="p-4 text-center">Belum ada pesan yang masuk.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+**Fungsi Kode:**
+*   **`DashboardPage` (Server Component):** Komponen ini `async` dan langsung memanggil `prisma.contactSubmission.findMany()` untuk mengambil semua data dari database.
+*   **`DeleteButton`:** Kita mendefinisikan komponen ini di file yang sama. Ini adalah pola yang umum untuk co-location. Tombol ini dibungkus dengan `<form>` yang `action`-nya adalah Server Action `deleteSubmission`.
+*   **`deleteSubmission` (Server Action):** Fungsi `async` ini menggunakan `prisma.contactSubmission.delete()` untuk menghapus data dari database.
+*   **`revalidatePath('/dashboard')`:** Ini adalah fungsi Next.js yang sangat kuat. Setelah data dihapus, kita memberitahu Next.js untuk "membersihkan cache" untuk path `/dashboard`. Ini akan memicu pengambilan data ulang di halaman tersebut, sehingga daftar pesan akan diperbarui secara otomatis tanpa perlu me-refresh halaman secara manual.
+
+**Tugas Tambahan:**
+1.  Ganti isi `src/app/dashboard/page.tsx` dengan kode di atas.
+2.  Pastikan halaman `/dashboard` Anda sudah dilindungi oleh `middleware.ts` dari bab sebelumnya.
+3.  Coba hapus beberapa pesan dan lihat daftarnya diperbarui secara otomatis.
+
+---
+
+### Menampilkan Data Kontak di Dashboard
+
+Setelah berhasil menyimpan pesan kontak ke database, langkah selanjutnya adalah menampilkannya di halaman dashboard. Karena halaman dashboard adalah halaman yang dilindungi, kita bisa langsung mengambil data di Server Component.
+
+**1. Buat Prisma Client Instance (jika belum ada)**
+
+Untuk berinteraksi dengan database menggunakan Prisma, kita memerlukan instance dari Prisma Client. Praktik terbaik adalah membuat satu instance dan menggunakannya kembali di seluruh aplikasi.
+
+Buat file `src/lib/prisma.ts`:
+
+**File: `src/lib/prisma.ts`**
+```typescript
+import { PrismaClient } from '@prisma/client';
+
+// Hindari membuat banyak instance PrismaClient di development
+declare global {
+  var prisma: PrismaClient | undefined;
+}
+
+const prisma = global.prisma || new PrismaClient();
+
+if (process.env.NODE_ENV === 'development') global.prisma = prisma;
+
+export default prisma;
+```
+**Fungsi Kode:**
+*   Kode ini memastikan bahwa di lingkungan development, hanya ada satu instance `PrismaClient` yang dibuat, mencegah masalah "hot-reloading" yang bisa membuat banyak koneksi database.
+
+**2. Perbarui Halaman Dashboard (`src/app/dashboard/page.tsx`)**
+
+Sekarang, kita akan mengubah halaman dashboard menjadi Server Component `async` yang mengambil data `ContactSubmission` dari database dan menampilkannya.
+
+**File: `src/app/dashboard/page.tsx` (Final)**
+```typescript
+import React from 'react';
+import prisma from '@/lib/prisma'; // Impor instance Prisma Client
+
+// Jadikan komponen ini async Server Component
+export default async function DashboardPage() {
+  // Ambil semua data ContactSubmission dari database
+  const submissions = await prisma.contactSubmission.findMany({
+    orderBy: {
+      createdAt: 'desc', // Urutkan dari yang terbaru
+    },
+  });
+
+  return (
+    <section className="p-8 md:p-16">
+      <h1 className="text-3xl font-bold mb-8">Dashboard Admin</h1>
+      <h2 className="text-2xl font-semibold mb-6">Pesan Kontak Masuk</h2>
+
+      {submissions.length === 0 ? (
+        <p>Belum ada pesan kontak yang masuk.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white border border-gray-200">
+            <thead>
+              <tr>
+                <th className="py-2 px-4 border-b text-left">Nama</th>
+                <th className="py-2 px-4 border-b text-left">Email</th>
+                <th className="py-2 px-4 border-b text-left">Pesan</th>
+                <th className="py-2 px-4 border-b text-left">Tanggal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {submissions.map((submission) => (
+                <tr key={submission.id} className="hover:bg-gray-50">
+                  <td className="py-2 px-4 border-b">{submission.name}</td>
+                  <td className="py-2 px-4 border-b">{submission.email}</td>
+                  <td className="py-2 px-4 border-b">{submission.message}</td>
+                  <td className="py-2 px-4 border-b">{new Date(submission.createdAt).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+```
+**Fungsi Kode:**
+*   `export default async function DashboardPage()`: Menjadikan halaman ini Server Component yang bisa melakukan operasi `await` untuk mengambil data.
+*   `import prisma from '@/lib/prisma'`: Mengimpor instance Prisma Client yang sudah kita buat.
+*   `prisma.contactSubmission.findMany()`: Mengambil semua record dari tabel `ContactSubmission`.
+*   Data ditampilkan dalam tabel sederhana.
+
+### Tugas:
+1.  Buat file `src/lib/prisma.ts` dan isi dengan kode yang diberikan.
+2.  Perbarui `src/app/dashboard/page.tsx` dengan kode yang diberikan.
+3.  Pastikan Anda sudah menjalankan `npx prisma generate` setelah membuat `src/lib/prisma.ts`.
+4.  Akses halaman `/dashboard` (setelah login) dan lihat apakah pesan kontak Anda muncul.
+
+---
+
 ## Bab 9: Performa & Optimisasi Aplikasi
+
+*   **Tujuan:** Mempelajari dan menerapkan teknik-teknik optimisasi kunci di Next.js untuk membuat aplikasi kita lebih cepat, lebih efisien, dan memberikan pengalaman pengguna yang lebih baik.
+*   **Proyek:** Mengoptimalkan font, gambar, dan menganalisis ukuran aplikasi portofolio kita.
+
+### Konsep Utama
+
+*   **`next/font`:** Sistem optimisasi font dari Next.js. Ia akan mengunduh font pada saat *build time* dan menyajikannya dari domain Anda sendiri, menghilangkan permintaan jaringan tambahan ke Google Fonts, yang meningkatkan privasi dan performa.
+*   **`next/image`:** Komponen gambar bawaan Next.js. Ia secara otomatis melakukan optimisasi gambar (resizing, format modern seperti WebP, lazy loading) untuk memastikan gambar dimuat secepat mungkin tanpa mengorbankan kualitas.
+*   **Bundle Analyzer:** Sebuah alat bantu untuk memvisualisasikan ukuran dari setiap *package* JavaScript yang membentuk aplikasi Anda. Ini sangat berguna untuk mengidentifikasi library mana yang paling memakan tempat dan perlu dioptimalkan.
+
+---
+
+### Langkah-langkah Implementasi
+
+#### Langkah 1: Optimisasi Font dengan `next/font`
+
+Saat ini, aplikasi kita menggunakan font default dari browser. Mari kita ganti dengan kombinasi font yang lebih menarik dan efisien dari Google Fonts. Kita akan menggunakan "Inter" untuk teks utama dan "Poppins" untuk judul.
+
+Buka file `src/app/layout.tsx` dan perbarui isinya.
+
+**File: `src/app/layout.tsx` (Dengan Optimisasi Font)**
+```typescript
+import type { Metadata } from "next";
+// 1. Impor font yang diinginkan dari next/font/google
+import { Inter, Poppins } from "next/font/google";
+import "./globals.css";
+import Navbar from "@/app/components/Navbar";
+import Providers from "@/app/components/Providers";
+
+// 2. Konfigurasi font
+const inter = Inter({
+  subsets: ["latin"],
+  variable: '--font-inter', // Buat CSS variable untuk font ini
+  display: 'swap',
+});
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ['400', '700'], // Tentukan ketebalan yang akan digunakan
+  variable: '--font-poppins', // Buat CSS variable
+  display: 'swap',
+});
+
+export const metadata: Metadata = {
+  title: "Create Next App",
+  description: "Generated by create next app",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    // 3. Terapkan variabel font ke tag <html>
+    <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
+      <body>
+        <Providers>
+          <Navbar />
+          <main>{children}</main>
+        </Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+Selanjutnya, kita perlu memberitahu Tailwind CSS cara menggunakan variabel font ini. Buka `tailwind.config.js` (atau `tailwind.config.ts`).
+
+**File: `tailwind.config.js`**
+```js
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      // 4. Tambahkan fontFamily
+      fontFamily: {
+        sans: ['var(--font-inter)'],
+        mono: ['var(--font-poppins)'],
+      },
+    },
+  },
+  plugins: [],
+};
+```
+Dengan ini, semua teks paragraf akan menggunakan font Inter, dan Anda bisa menggunakan kelas `font-mono` dari Tailwind untuk menerapkan font Poppins pada judul.
+
+#### Langkah 2: Optimisasi Gambar dengan `next/image`
+
+Halaman "Proyek" kita saat ini belum memiliki gambar. Mari kita tambahkan dan optimalkan.
+
+**A. Perbarui Data Proyek**
+
+Buka file halaman proyek Anda (kemungkinan di `src/app/(main)/projects/page.tsx` atau di mana Anda mendefinisikan `projectsData`) dan tambahkan properti `imageUrl` ke setiap objek proyek. Kita akan menggunakan layanan placeholder `https://placehold.co`.
+
+```typescript
+// Contoh data proyek yang diperbarui
+const projectsData = [
+  {
+    title: 'Website Portofolio',
+    description: 'Portofolio pribadi yang dibangun dengan Next.js dan Tailwind CSS.',
+    tech: ['Next.js', 'TypeScript', 'Tailwind CSS'],
+    imageUrl: 'https://placehold.co/600x400/000000/FFFFFF/png?text=Proyek+1',
+  },
+  {
+    title: 'Aplikasi To-Do List',
+    description: 'Aplikasi sederhana untuk manajemen tugas harian.',
+    tech: ['React', 'Zustand'],
+    imageUrl: 'https://placehold.co/600x400/555555/FFFFFF/png?text=Proyek+2',
+  },
+  // ... proyek lainnya
+];
+```
+
+**B. Perbarui Komponen `Card.tsx`**
+
+Sekarang, modifikasi komponen `Card.tsx` untuk menerima `imageUrl` dan menampilkannya dengan `<Image>`.
+
+**File: `src/app/components/Card.tsx` (Dengan Optimisasi Gambar)**
+```typescript
+import Image from 'next/image'; // 1. Impor komponen Image
+
+export interface CardProps {
+  title: string;
+  description: string;
+  tech: string[];
+  imageUrl: string; // 2. Tambahkan imageUrl ke interface
+}
+
+const Card = ({ title, description, tech, imageUrl }: CardProps) => {
+  return (
+    <div className="border rounded-lg shadow-md overflow-hidden h-full">
+      {/* 3. Gunakan komponen Image */}
+      <div className="relative w-full h-48">
+        <Image
+          src={imageUrl}
+          alt={`Gambar screenshot dari proyek ${title}`}
+          fill
+          style={{ objectFit: 'cover' }} // atau gunakan className="object-cover"
+        />
+      </div>
+      <div className="p-4">
+        <h3 className="text-xl font-semibold">{title}</h3>
+        <p className="mt-2 text-gray-600">{description}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {tech.map((t) => (
+            <span key={t} className="bg-gray-200 px-2 py-1 rounded-full text-sm">
+              {t}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Card;
+```
+**Fungsi Kode:**
+*   `import Image from 'next/image'`: Mengimpor komponen yang diperlukan.
+*   `fill`: Prop ini membuat gambar mengisi elemen induknya (`div` dengan `relative w-full h-48`). Ini adalah cara modern untuk membuat gambar responsif.
+*   `style={{ objectFit: 'cover' }}`: Memastikan gambar menutupi seluruh area tanpa distorsi, mirip seperti `background-size: cover`.
+
+#### Langkah 3 (Opsional): Menganalisis Ukuran Bundle
+
+Ingin tahu library mana yang paling besar di proyek Anda? Gunakan `@next/bundle-analyzer`.
+
+**A. Instalasi**
+```bash
+npm install @next/bundle-analyzer
+```
+
+**B. Konfigurasi `next.config.ts`**
+Buka `next.config.ts` dan bungkus konfigurasi Anda dengan `withBundleAnalyzer`.
+
+**File: `next.config.ts`**
+```typescript
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+})
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Konfigurasi Next.js Anda lainnya di sini
+};
+
+module.exports = withBundleAnalyzer(nextConfig);
+```
+
+**C. Tambahkan Script ke `package.json`**
+Buka `package.json` dan tambahkan script `analyze`.
+
+**File: `package.json`**
+```json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "analyze": "ANALYZE=true npm run build"
+  },
+  ...
+}
+```
+
+Sekarang, setiap kali Anda menjalankan `npm run analyze`, proses build akan berjalan dan di akhir akan membuka dua tab di browser Anda yang menunjukkan visualisasi bundle untuk server dan client.
+
+### Tugas:
+1.  Terapkan optimisasi font menggunakan `next/font` di `layout.tsx` dan `tailwind.config.js`.
+2.  Perbarui data proyek Anda dengan `imageUrl` dan modifikasi komponen `Card.tsx` untuk menggunakan `<Image>`.
+3.  (Opsional) Coba jalankan bundle analyzer untuk melihat "peta" dari ukuran aplikasi Anda. Aplikasi
 
 *   **Tujuan:** Mempelajari dan menerapkan teknik-teknik optimisasi kunci di Next.js untuk membuat aplikasi kita lebih cepat, lebih efisien, dan memberikan pengalaman pengguna yang lebih baik.
 *   **Proyek:** Mengoptimalkan font, gambar, dan menganalisis ukuran aplikasi portofolio kita.

@@ -1,3 +1,12 @@
 @import "tailwindcss";
 
 
+h1 {
+  /* Gunakan CSS Variable yang sudah Anda buat di layout.tsx */
+  font-family: var(--font-poppins);
+}
+
+/* Contoh lain untuk kelas khusus */
+.font-poppins {
+  font-family: var(--font-poppins);
+}
